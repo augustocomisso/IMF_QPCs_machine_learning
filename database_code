@@ -494,7 +494,7 @@ library(fastDummies)
 QPC_final <- QPC_final %>%
   arrange(Arrangement.Type) %>%
   dummy_cols(select_columns = "Arrangement.Type")
-QPC_final <- QPC_final %>% select(-Arrangement.Type)
+#QPC_final <- QPC_final %>% select(-Arrangement.Type)
 
 
 QPC_final <- QPC_final %>%
@@ -696,6 +696,7 @@ tabla_comb <- tabla %>% distinct()
 mean(is.na(tabla_comb$Precautionary)) * 100
 mean(is.na(tabla_comb$Totalaccess)) * 100
 
+colnames(tabla_comb)
 
 # Pasar a excel
 library(writexl)
@@ -981,6 +982,8 @@ colnames(tabla)
 
 tabla <- tabla %>% distinct()
 
+colnames(tabla)
+
 # Pasar a excel
 
 library(writexl)
@@ -1003,12 +1006,25 @@ tabla3 <- tabla2 %>%
 colnames(tabla3)
 
 tabla5 <- tabla3 %>%
-  select(where(~mean(is.na(.x) | sapply(.x, is.null)) <= 0.05))
+  select(where(~mean(is.na(.x) | sapply(.x, is.null)) <= 0.1))
 
 tabla6 <- tabla5 %>%
   mutate(across(where(is.numeric), ~ ifelse(is.na(.) | . == "", median(., na.rm = TRUE), .)))
 
 colnames(tabla6)
+
+
+##################################################################################
+library(lubridate)
+
+#tabla6$Purchase_Original_Date <- dmy(tabla6$Purchase_Original_Date)
+#tabla6$Approval.Date_  <- as.Date(tabla6$Approval.Date, origin = "1899-12-30")
+
+tabla6$Purchase_date_span <- tabla6$Purchase_Original_Date - tabla6$Approval.Date
+tabla6$Purchase_date_span <- as.numeric(tabla6$Purchase_date_span)
+
+tabla6 <- tabla6 %>% select(-Purchase_Original_Date)
+
 
 ##################################################################################
 # Eliminar nominalidad
@@ -1225,6 +1241,151 @@ tabla6$QPC_Original_Amount_real <- ifelse(tabla6$QPC_Units_ == "SDR", as.numeric
 glimpse(tabla6)
 tabla6$QPC_Original_Amount_real <- as.numeric(tabla6$QPC_Original_Amount_real)
 tabla6$QPC_Original_Amount <- as.numeric(tabla6$QPC_Original_Amount)
+
+############################################################################
+
+colnames(tabla6)
+
+tabla6$Purchase_Original_Amount_real <- as.numeric(tabla6$Purchase_Original_Amount) / tabla6$`T-1_BXG`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_real`[is.finite(tabla6$`Purchase_Original_Amount_real`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_real`[is.na(tabla6$`Purchase_Original_Amount_real`)] <- mediana_valor
+sum(is.na(tabla6$Purchase_Original_Amount_real))
+
+##
+
+tabla6$`Purchase_Original_Amount_bxg_1` <- tabla6$`Purchase_Original_Amount` / tabla6$`T-1_BXG`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_bxg_1`[is.finite(tabla6$`Purchase_Original_Amount_bxg_1`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_bxg_1`[is.infinite(tabla6$`Purchase_Original_Amount_bxg_1`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_bxg_2` <- tabla6$`Purchase_Original_Amount` / tabla6$`T-2_BXG`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_bxg_2`[is.finite(tabla6$`Purchase_Original_Amount_bxg_2`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_bxg_2`[is.infinite(tabla6$`Purchase_Original_Amount_bxg_2`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_bxg_3` <- tabla6$`Purchase_Original_Amount` / tabla6$`T-3_BXG`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_bxg_3`[is.finite(tabla6$`Purchase_Original_Amount_bxg_3`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_bxg_3`[is.infinite(tabla6$`Purchase_Original_Amount_bxg_3`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_bxg_t` <- tabla6$`Purchase_Original_Amount` / tabla6$`T_BXG`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_bxg_t`[is.finite(tabla6$`Purchase_Original_Amount_bxg_t`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_bxg_t`[is.infinite(tabla6$`Purchase_Original_Amount_bxg_t`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_bxg+1` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+1_BXG`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_bxg+1`[is.finite(tabla6$`Purchase_Original_Amount_bxg+1`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_bxg+1`[is.infinite(tabla6$`Purchase_Original_Amount_bxg+1`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_bxg+2` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+2_BXG`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_bxg+2`[is.finite(tabla6$`Purchase_Original_Amount_bxg+2`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_bxg+2`[is.infinite(tabla6$`Purchase_Original_Amount_bxg+2`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_bxg+3` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+3_BXG`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_bxg+3`[is.finite(tabla6$`Purchase_Original_Amount_bxg+3`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_bxg+3`[is.infinite(tabla6$`Purchase_Original_Amount_bxg+3`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_bxg+4` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+4_BXG`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_bxg+4`[is.finite(tabla6$`Purchase_Original_Amount_bxg+4`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_bxg+4`[is.infinite(tabla6$`Purchase_Original_Amount_bxg+4`)] <- mediana_valor
+
+##
+
+tabla6$`Purchase_Original_Amount_ENDA_1` <- tabla6$`Purchase_Original_Amount` / tabla6$`T-1_ENDA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_ENDA_1`[is.finite(tabla6$`Purchase_Original_Amount_ENDA_1`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_ENDA_1`[is.infinite(tabla6$`Purchase_Original_Amount_ENDA_1`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_ENDA_2` <- tabla6$`Purchase_Original_Amount` / tabla6$`T-2_ENDA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_ENDA_2`[is.finite(tabla6$`Purchase_Original_Amount_ENDA_2`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_ENDA_2`[is.infinite(tabla6$`Purchase_Original_Amount_ENDA_2`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_ENDA_3` <- tabla6$`Purchase_Original_Amount` / tabla6$`T-3_ENDA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_ENDA_3`[is.finite(tabla6$`Purchase_Original_Amount_ENDA_3`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_ENDA_3`[is.infinite(tabla6$`Purchase_Original_Amount_ENDA_3`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_ENDA_t` <- tabla6$`Purchase_Original_Amount` / tabla6$`T_ENDA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_ENDA_t`[is.finite(tabla6$`Purchase_Original_Amount_ENDA_t`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_ENDA_t`[is.infinite(tabla6$`Purchase_Original_Amount_ENDA_t`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_ENDA+1` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+1_ENDA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_ENDA+1`[is.finite(tabla6$`Purchase_Original_Amount_ENDA+1`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_ENDA+1`[is.infinite(tabla6$`Purchase_Original_Amount_ENDA+1`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_ENDA+2` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+2_ENDA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_ENDA+2`[is.finite(tabla6$`Purchase_Original_Amount_ENDA+2`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_ENDA+2`[is.infinite(tabla6$`Purchase_Original_Amount_ENDA+2`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_ENDA+3` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+3_ENDA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_ENDA+3`[is.finite(tabla6$`Purchase_Original_Amount_ENDA+3`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_ENDA+3`[is.infinite(tabla6$`Purchase_Original_Amount_ENDA+3`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_ENDA+4` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+4_ENDA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_ENDA+4`[is.finite(tabla6$`Purchase_Original_Amount_ENDA+4`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_ENDA+4`[is.infinite(tabla6$`Purchase_Original_Amount_ENDA+4`)] <- mediana_valor
+
+##
+
+tabla6$`Purchase_Original_Amount_BCA_1` <- tabla6$`Purchase_Original_Amount` / tabla6$`T-1_BCA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_BCA_1`[is.finite(tabla6$`Purchase_Original_Amount_BCA_1`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_BCA_1`[is.infinite(tabla6$`Purchase_Original_Amount_BCA_1`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_BCA_2` <- tabla6$`Purchase_Original_Amount` / tabla6$`T-2_BCA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_BCA_2`[is.finite(tabla6$`Purchase_Original_Amount_BCA_2`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_BCA_2`[is.infinite(tabla6$`Purchase_Original_Amount_BCA_2`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_BCA_3` <- tabla6$`Purchase_Original_Amount` / tabla6$`T-3_BCA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_BCA_3`[is.finite(tabla6$`Purchase_Original_Amount_BCA_3`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_BCA_3`[is.infinite(tabla6$`Purchase_Original_Amount_BCA_3`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_BCA_t` <- tabla6$`Purchase_Original_Amount` / tabla6$`T_BCA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_BCA_t`[is.finite(tabla6$`Purchase_Original_Amount_BCA_t`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_BCA_t`[is.infinite(tabla6$`Purchase_Original_Amount_BCA_t`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_BCA+1` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+1_BCA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_BCA+1`[is.finite(tabla6$`Purchase_Original_Amount_BCA+1`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_BCA+1`[is.infinite(tabla6$`Purchase_Original_Amount_BCA+1`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_BCA+2` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+2_BCA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_BCA+2`[is.finite(tabla6$`Purchase_Original_Amount_BCA+2`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_BCA+2`[is.infinite(tabla6$`Purchase_Original_Amount_BCA+2`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_BCA+3` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+3_BCA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_BCA+3`[is.finite(tabla6$`Purchase_Original_Amount_BCA+3`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_BCA+3`[is.infinite(tabla6$`Purchase_Original_Amount_BCA+3`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_BCA+4` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+4_BCA`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_BCA+4`[is.finite(tabla6$`Purchase_Original_Amount_BCA+4`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_BCA+4`[is.infinite(tabla6$`Purchase_Original_Amount_BCA+4`)] <- mediana_valor
+
+##
+
+tabla6$`Purchase_Original_Amount_D_1` <- tabla6$`Purchase_Original_Amount` / tabla6$`T-1_D`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_D_1`[is.finite(tabla6$`Purchase_Original_Amount_D_1`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_D_1`[is.infinite(tabla6$`Purchase_Original_Amount_D_1`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_D_2` <- tabla6$`Purchase_Original_Amount` / tabla6$`T-2_D`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_D_2`[is.finite(tabla6$`Purchase_Original_Amount_D_2`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_D_2`[is.infinite(tabla6$`Purchase_Original_Amount_D_2`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_D_3` <- tabla6$`Purchase_Original_Amount` / tabla6$`T-3_D`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_D_3`[is.finite(tabla6$`Purchase_Original_Amount_D_3`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_D_3`[is.infinite(tabla6$`Purchase_Original_Amount_D_3`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_D_t` <- tabla6$`Purchase_Original_Amount` / tabla6$`T_D`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_D_t`[is.finite(tabla6$`Purchase_Original_Amount_D_t`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_D_t`[is.infinite(tabla6$`Purchase_Original_Amount_D_t`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_D+1` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+1_D`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_D+1`[is.finite(tabla6$`Purchase_Original_Amount_D+1`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_D+1`[is.infinite(tabla6$`Purchase_Original_Amount_D+1`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_D+2` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+2_D`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_D+2`[is.finite(tabla6$`Purchase_Original_Amount_D+2`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_D+2`[is.infinite(tabla6$`Purchase_Original_Amount_D+2`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_D+3` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+3_D`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_D+3`[is.finite(tabla6$`Purchase_Original_Amount_D+3`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_D+3`[is.infinite(tabla6$`Purchase_Original_Amount_D+3`)] <- mediana_valor
+
+tabla6$`Purchase_Original_Amount_D+4` <- tabla6$`Purchase_Original_Amount` / tabla6$`T+4_D`
+mediana_valor <- median(tabla6$`Purchase_Original_Amount_D+4`[is.finite(tabla6$`Purchase_Original_Amount_D+4`)], na.rm = TRUE)
+tabla6$`Purchase_Original_Amount_D+4`[is.infinite(tabla6$`Purchase_Original_Amount_D+4`)] <- mediana_valor
 
 
 ##############################################################################
@@ -1543,19 +1704,19 @@ tabla6$`Totalaccess_bxg` <- tabla6$`Totalaccess` / tabla6$`T-1_BXG`
 mediana_valor <- median(tabla6$`Totalaccess_bxg`[is.finite(tabla6$`Totalaccess_bxg`)], na.rm = TRUE)
 tabla6$`Totalaccess_bxg`[is.infinite(tabla6$`Totalaccess_bxg`)] <- mediana_valor
 
-tabla6$Program_spam <- tabla6$Initial.End.Date - tabla6$Approval.Date
+tabla6$Program_span <- tabla6$Initial.End.Date - tabla6$Approval.Date
 
 library(lubridate)
 
 tabla6$QPC_Test_Date_ <- dmy(tabla6$QPC_Test_Date)
 tabla6$Approval.Date_  <- as.Date(tabla6$Approval.Date, origin = "1899-12-30")
 
-tabla6$QPC_spam <- tabla6$QPC_Test_Date_ - tabla6$Approval.Date_
-tabla6$QPC_date_spam <- as.numeric(tabla6$QPC_spam)
+tabla6$QPC_span <- tabla6$QPC_Test_Date_ - tabla6$Approval.Date_
+tabla6$QPC_date_span <- as.numeric(tabla6$QPC_span)
 
 tabla6 <- tabla6[, -which(names(tabla6) == "QPC_Test_Date_")]
 tabla6 <- tabla6[, -which(names(tabla6) == "Approval.Date_")]
-tabla6 <- tabla6[, -which(names(tabla6) == "QPC_spam")]
+tabla6 <- tabla6[, -which(names(tabla6) == "QPC_span")]
 
 
 
@@ -1647,13 +1808,13 @@ tabla6 <- tabla6 %>% select(-QPC_Units)
 #tabla6 <- tabla6 %>% select(-Purchase_Units)
 tabla6 <- tabla6 %>% select(-Main.Criteria.Sequence)
 #tabla6 <- tabla6 %>% select(-Sub.Option)
-tabla6 <- tabla6 %>% select(-Program_spam)
+tabla6 <- tabla6 %>% select(-Program_span)
 
 tabla6 <- tabla6 %>%
   relocate(Joint_revision, .before = 6)
 
 tabla6 <- tabla6 %>%
-  relocate(QPC_date_spam, .before = 5)
+  relocate(QPC_date_span, .before = 5)
 
 tabla6 <- tabla6 %>%
   relocate(QPC_Test_Date, .before = 5)
@@ -1689,7 +1850,356 @@ tabla6$QPC_Original_Amount_real <- ifelse(tabla6$QPC_Units_ == "SDR", tabla6$QPC
 tabla6$QPC_Adjusted_Amount_real <- ifelse(tabla6$QPC_Units_ == "SDR", tabla6$Adjusted.Amount / tabla6$`T-1_BXG`, tabla6$Adjusted.Amount)
 tabla6$QPC_Actual_Amount_real <- ifelse(tabla6$QPC_Units_ == "SDR", tabla6$Actual.Amount / tabla6$`T-1_BXG`, tabla6$Actual.Amount)
 
-tabla6$QPC_Amount_spam <- tabla6$QPC_Actual_Amount_real - tabla6$QPC_Original_Amount_real
+tabla6$QPC_Amount_span <- tabla6$QPC_Actual_Amount_real - tabla6$QPC_Original_Amount_real
+
+#############################################
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_ENDA_1 = Sub.Option_NIR_floor * Purchase_Original_Amount_ENDA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_ENDA_2 = Sub.Option_NIR_floor * Purchase_Original_Amount_ENDA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_ENDA_3 = Sub.Option_NIR_floor * Purchase_Original_Amount_ENDA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_ENDA_t = Sub.Option_NIR_floor * Purchase_Original_Amount_ENDA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_ENDA1 = Sub.Option_NIR_floor * `Purchase_Original_Amount_ENDA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_ENDA2 = Sub.Option_NIR_floor * `Purchase_Original_Amount_ENDA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_ENDA3 = Sub.Option_NIR_floor * `Purchase_Original_Amount_ENDA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_ENDA4 = Sub.Option_NIR_floor * `Purchase_Original_Amount_ENDA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_bxg_1 = Sub.Option_NIR_floor * Purchase_Original_Amount_bxg_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_bxg_2 = Sub.Option_NIR_floor * Purchase_Original_Amount_bxg_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_bxg_3 = Sub.Option_NIR_floor * Purchase_Original_Amount_bxg_3)
+#tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_bxg_4 = Sub.Option_NIR_floor * Purchase_Original_Amount_bxg_4)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_bxg_t = Sub.Option_NIR_floor * Purchase_Original_Amount_bxg_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_bxg1 = Sub.Option_NIR_floor * `Purchase_Original_Amount_bxg+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_bxg2 = Sub.Option_NIR_floor * `Purchase_Original_Amount_bxg+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_bxg4 = Sub.Option_NIR_floor * `Purchase_Original_Amount_bxg+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_BCA_1 = Sub.Option_NIR_floor * Purchase_Original_Amount_BCA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_BCA_2 = Sub.Option_NIR_floor * Purchase_Original_Amount_BCA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_BCA_3 = Sub.Option_NIR_floor * Purchase_Original_Amount_BCA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_BCA_t = Sub.Option_NIR_floor * Purchase_Original_Amount_BCA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_BCA1 = Sub.Option_NIR_floor * `Purchase_Original_Amount_BCA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_BCA2 = Sub.Option_NIR_floor * `Purchase_Original_Amount_BCA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_BCA3 = Sub.Option_NIR_floor * `Purchase_Original_Amount_BCA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_BCA4 = Sub.Option_NIR_floor * `Purchase_Original_Amount_BCA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_D_1 = Sub.Option_NIR_floor * Purchase_Original_Amount_D_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_D_2 = Sub.Option_NIR_floor * Purchase_Original_Amount_D_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_D_3 = Sub.Option_NIR_floor * Purchase_Original_Amount_D_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_D_t = Sub.Option_NIR_floor * Purchase_Original_Amount_D_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_D1 = Sub.Option_NIR_floor * `Purchase_Original_Amount_D+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_D2 = Sub.Option_NIR_floor * `Purchase_Original_Amount_D+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_D3 = Sub.Option_NIR_floor * `Purchase_Original_Amount_D+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_NIR_floor_Purchase_Original_Amount_D4 = Sub.Option_NIR_floor * `Purchase_Original_Amount_D+4`)
+
+#
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_ENDA_1 = Sub.Option_FX_ctrol * Purchase_Original_Amount_ENDA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_ENDA_2 = Sub.Option_FX_ctrol * Purchase_Original_Amount_ENDA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_ENDA_3 = Sub.Option_FX_ctrol * Purchase_Original_Amount_ENDA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_ENDA_t = Sub.Option_FX_ctrol * Purchase_Original_Amount_ENDA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_ENDA1 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_ENDA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_ENDA2 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_ENDA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_ENDA3 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_ENDA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_ENDA4 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_ENDA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_bxg_1 = Sub.Option_FX_ctrol * Purchase_Original_Amount_bxg_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_bxg_2 = Sub.Option_FX_ctrol * Purchase_Original_Amount_bxg_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_bxg_3 = Sub.Option_FX_ctrol * Purchase_Original_Amount_bxg_3)
+#tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_bxg_4 = Sub.Option_FX_ctrol * Purchase_Original_Amount_bxg_4)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_bxg_t = Sub.Option_FX_ctrol * Purchase_Original_Amount_bxg_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_bxg1 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_bxg+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_bxg2 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_bxg+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_bxg4 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_bxg+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_BCA_1 = Sub.Option_FX_ctrol * Purchase_Original_Amount_BCA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_BCA_2 = Sub.Option_FX_ctrol * Purchase_Original_Amount_BCA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_BCA_3 = Sub.Option_FX_ctrol * Purchase_Original_Amount_BCA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_BCA_t = Sub.Option_FX_ctrol * Purchase_Original_Amount_BCA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_BCA1 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_BCA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_BCA2 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_BCA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_BCA3 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_BCA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_BCA4 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_BCA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_D_1 = Sub.Option_FX_ctrol * Purchase_Original_Amount_D_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_D_2 = Sub.Option_FX_ctrol * Purchase_Original_Amount_D_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_D_3 = Sub.Option_FX_ctrol * Purchase_Original_Amount_D_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_D_t = Sub.Option_FX_ctrol * Purchase_Original_Amount_D_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_D1 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_D+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_D2 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_D+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_D3 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_D+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_FX_ctrol_Purchase_Original_Amount_D4 = Sub.Option_FX_ctrol * `Purchase_Original_Amount_D+4`)
+
+#
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_ENDA_1 = Sub.Option_External_arrears_accum * Purchase_Original_Amount_ENDA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_ENDA_2 = Sub.Option_External_arrears_accum * Purchase_Original_Amount_ENDA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_ENDA_3 = Sub.Option_External_arrears_accum * Purchase_Original_Amount_ENDA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_ENDA_t = Sub.Option_External_arrears_accum * Purchase_Original_Amount_ENDA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_ENDA1 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_ENDA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_ENDA2 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_ENDA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_ENDA3 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_ENDA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_ENDA4 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_ENDA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_bxg_1 = Sub.Option_External_arrears_accum * Purchase_Original_Amount_bxg_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_bxg_2 = Sub.Option_External_arrears_accum * Purchase_Original_Amount_bxg_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_bxg_3 = Sub.Option_External_arrears_accum * Purchase_Original_Amount_bxg_3)
+#tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_bxg_4 = Sub.Option_External_arrears_accum * Purchase_Original_Amount_bxg_4)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_bxg_t = Sub.Option_External_arrears_accum * Purchase_Original_Amount_bxg_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_bxg1 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_bxg+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_bxg2 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_bxg+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_bxg4 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_bxg+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_BCA_1 = Sub.Option_External_arrears_accum * Purchase_Original_Amount_BCA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_BCA_2 = Sub.Option_External_arrears_accum * Purchase_Original_Amount_BCA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_BCA_3 = Sub.Option_External_arrears_accum * Purchase_Original_Amount_BCA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_BCA_t = Sub.Option_External_arrears_accum * Purchase_Original_Amount_BCA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_BCA1 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_BCA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_BCA2 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_BCA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_BCA3 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_BCA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_BCA4 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_BCA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_D_1 = Sub.Option_External_arrears_accum * Purchase_Original_Amount_D_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_D_2 = Sub.Option_External_arrears_accum * Purchase_Original_Amount_D_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_D_3 = Sub.Option_External_arrears_accum * Purchase_Original_Amount_D_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_D_t = Sub.Option_External_arrears_accum * Purchase_Original_Amount_D_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_D1 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_D+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_D2 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_D+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_D3 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_D+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_accum_Purchase_Original_Amount_D4 = Sub.Option_External_arrears_accum * `Purchase_Original_Amount_D+4`)
+
+#
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_ENDA_1 = Sub.Option_External_arrears_stock * Purchase_Original_Amount_ENDA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_ENDA_2 = Sub.Option_External_arrears_stock * Purchase_Original_Amount_ENDA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_ENDA_3 = Sub.Option_External_arrears_stock * Purchase_Original_Amount_ENDA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_ENDA_t = Sub.Option_External_arrears_stock * Purchase_Original_Amount_ENDA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_ENDA1 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_ENDA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_ENDA2 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_ENDA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_ENDA3 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_ENDA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_ENDA4 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_ENDA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_bxg_1 = Sub.Option_External_arrears_stock * Purchase_Original_Amount_bxg_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_bxg_2 = Sub.Option_External_arrears_stock * Purchase_Original_Amount_bxg_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_bxg_3 = Sub.Option_External_arrears_stock * Purchase_Original_Amount_bxg_3)
+#tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_bxg_4 = Sub.Option_External_arrears_stock * Purchase_Original_Amount_bxg_4)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_bxg_t = Sub.Option_External_arrears_stock * Purchase_Original_Amount_bxg_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_bxg1 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_bxg+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_bxg2 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_bxg+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_bxg4 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_bxg+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_BCA_1 = Sub.Option_External_arrears_stock * Purchase_Original_Amount_BCA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_BCA_2 = Sub.Option_External_arrears_stock * Purchase_Original_Amount_BCA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_BCA_3 = Sub.Option_External_arrears_stock * Purchase_Original_Amount_BCA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_BCA_t = Sub.Option_External_arrears_stock * Purchase_Original_Amount_BCA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_BCA1 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_BCA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_BCA2 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_BCA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_BCA3 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_BCA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_BCA4 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_BCA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_D_1 = Sub.Option_External_arrears_stock * Purchase_Original_Amount_D_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_D_2 = Sub.Option_External_arrears_stock * Purchase_Original_Amount_D_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_D_3 = Sub.Option_External_arrears_stock * Purchase_Original_Amount_D_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_D_t = Sub.Option_External_arrears_stock * Purchase_Original_Amount_D_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_D1 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_D+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_D2 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_D+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_D3 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_D+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_arrears_stock_Purchase_Original_Amount_D4 = Sub.Option_External_arrears_stock * `Purchase_Original_Amount_D+4`)
+
+#
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_ENDA_1 = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_ENDA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_ENDA_2 = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_ENDA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_ENDA_3 = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_ENDA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_ENDA_t = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_ENDA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_ENDA1 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_ENDA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_ENDA2 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_ENDA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_ENDA3 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_ENDA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_ENDA4 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_ENDA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_bxg_1 = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_bxg_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_bxg_2 = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_bxg_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_bxg_3 = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_bxg_3)
+#tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_bxg_4 = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_bxg_4)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_bxg_t = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_bxg_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_bxg1 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_bxg+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_bxg2 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_bxg+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_bxg4 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_bxg+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_BCA_1 = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_BCA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_BCA_2 = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_BCA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_BCA_3 = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_BCA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_BCA_t = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_BCA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_BCA1 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_BCA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_BCA2 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_BCA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_BCA3 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_BCA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_BCA4 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_BCA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_D_1 = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_D_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_D_2 = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_D_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_D_3 = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_D_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_D_t = Sub.Option_External_debt_Contracted_Guaranteed * Purchase_Original_Amount_D_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_D1 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_D+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_D2 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_D+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_D3 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_D+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_External_debt_Contracted_Guaranteed_Purchase_Original_Amount_D4 = Sub.Option_External_debt_Contracted_Guaranteed * `Purchase_Original_Amount_D+4`)
+
+##
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_ENDA_1 = Sub.Option_Primary_deficit * Purchase_Original_Amount_ENDA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_ENDA_2 = Sub.Option_Primary_deficit * Purchase_Original_Amount_ENDA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_ENDA_3 = Sub.Option_Primary_deficit * Purchase_Original_Amount_ENDA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_ENDA_t = Sub.Option_Primary_deficit * Purchase_Original_Amount_ENDA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_ENDA1 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_ENDA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_ENDA2 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_ENDA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_ENDA3 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_ENDA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_ENDA4 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_ENDA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_bxg_1 = Sub.Option_Primary_deficit * Purchase_Original_Amount_bxg_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_bxg_2 = Sub.Option_Primary_deficit * Purchase_Original_Amount_bxg_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_bxg_3 = Sub.Option_Primary_deficit * Purchase_Original_Amount_bxg_3)
+#tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_bxg_4 = Sub.Option_Primary_deficit * Purchase_Original_Amount_bxg_4)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_bxg_t = Sub.Option_Primary_deficit * Purchase_Original_Amount_bxg_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_bxg1 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_bxg+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_bxg2 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_bxg+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_bxg4 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_bxg+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_BCA_1 = Sub.Option_Primary_deficit * Purchase_Original_Amount_BCA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_BCA_2 = Sub.Option_Primary_deficit * Purchase_Original_Amount_BCA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_BCA_3 = Sub.Option_Primary_deficit * Purchase_Original_Amount_BCA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_BCA_t = Sub.Option_Primary_deficit * Purchase_Original_Amount_BCA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_BCA1 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_BCA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_BCA2 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_BCA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_BCA3 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_BCA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_BCA4 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_BCA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_D_1 = Sub.Option_Primary_deficit * Purchase_Original_Amount_D_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_D_2 = Sub.Option_Primary_deficit * Purchase_Original_Amount_D_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_D_3 = Sub.Option_Primary_deficit * Purchase_Original_Amount_D_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_D_t = Sub.Option_Primary_deficit * Purchase_Original_Amount_D_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_D1 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_D+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_D2 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_D+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_D3 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_D+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Primary_deficit_Purchase_Original_Amount_D4 = Sub.Option_Primary_deficit * `Purchase_Original_Amount_D+4`)
+
+##
+
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_ENDA_1 = Sub.Option_Overall_deficit * Purchase_Original_Amount_ENDA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_ENDA_2 = Sub.Option_Overall_deficit * Purchase_Original_Amount_ENDA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_ENDA_3 = Sub.Option_Overall_deficit * Purchase_Original_Amount_ENDA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_ENDA_t = Sub.Option_Overall_deficit * Purchase_Original_Amount_ENDA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_ENDA1 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_ENDA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_ENDA2 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_ENDA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_ENDA3 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_ENDA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_ENDA4 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_ENDA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_bxg_1 = Sub.Option_Overall_deficit * Purchase_Original_Amount_bxg_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_bxg_2 = Sub.Option_Overall_deficit * Purchase_Original_Amount_bxg_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_bxg_3 = Sub.Option_Overall_deficit * Purchase_Original_Amount_bxg_3)
+#tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_bxg_4 = Sub.Option_Overall_deficit * Purchase_Original_Amount_bxg_4)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_bxg_t = Sub.Option_Overall_deficit * Purchase_Original_Amount_bxg_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_bxg1 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_bxg+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_bxg2 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_bxg+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_bxg4 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_bxg+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_BCA_1 = Sub.Option_Overall_deficit * Purchase_Original_Amount_BCA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_BCA_2 = Sub.Option_Overall_deficit * Purchase_Original_Amount_BCA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_BCA_3 = Sub.Option_Overall_deficit * Purchase_Original_Amount_BCA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_BCA_t = Sub.Option_Overall_deficit * Purchase_Original_Amount_BCA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_BCA1 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_BCA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_BCA2 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_BCA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_BCA3 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_BCA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_BCA4 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_BCA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_D_1 = Sub.Option_Overall_deficit * Purchase_Original_Amount_D_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_D_2 = Sub.Option_Overall_deficit * Purchase_Original_Amount_D_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_D_3 = Sub.Option_Overall_deficit * Purchase_Original_Amount_D_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_D_t = Sub.Option_Overall_deficit * Purchase_Original_Amount_D_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_D1 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_D+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_D2 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_D+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_D3 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_D+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Overall_deficit_Purchase_Original_Amount_D4 = Sub.Option_Overall_deficit * `Purchase_Original_Amount_D+4`)
+
+
+##
+
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_ENDA_1 = Sub.Option_Revenue * Purchase_Original_Amount_ENDA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_ENDA_2 = Sub.Option_Revenue * Purchase_Original_Amount_ENDA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_ENDA_3 = Sub.Option_Revenue * Purchase_Original_Amount_ENDA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_ENDA_t = Sub.Option_Revenue * Purchase_Original_Amount_ENDA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_ENDA1 = Sub.Option_Revenue * `Purchase_Original_Amount_ENDA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_ENDA2 = Sub.Option_Revenue * `Purchase_Original_Amount_ENDA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_ENDA3 = Sub.Option_Revenue * `Purchase_Original_Amount_ENDA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_ENDA4 = Sub.Option_Revenue * `Purchase_Original_Amount_ENDA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_bxg_1 = Sub.Option_Revenue * Purchase_Original_Amount_bxg_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_bxg_2 = Sub.Option_Revenue * Purchase_Original_Amount_bxg_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_bxg_3 = Sub.Option_Revenue * Purchase_Original_Amount_bxg_3)
+#tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_bxg_4 = Sub.Option_Revenue * Purchase_Original_Amount_bxg_4)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_bxg_t = Sub.Option_Revenue * Purchase_Original_Amount_bxg_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_bxg1 = Sub.Option_Revenue * `Purchase_Original_Amount_bxg+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_bxg2 = Sub.Option_Revenue * `Purchase_Original_Amount_bxg+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_bxg4 = Sub.Option_Revenue * `Purchase_Original_Amount_bxg+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_BCA_1 = Sub.Option_Revenue * Purchase_Original_Amount_BCA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_BCA_2 = Sub.Option_Revenue * Purchase_Original_Amount_BCA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_BCA_3 = Sub.Option_Revenue * Purchase_Original_Amount_BCA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_BCA_t = Sub.Option_Revenue * Purchase_Original_Amount_BCA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_BCA1 = Sub.Option_Revenue * `Purchase_Original_Amount_BCA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_BCA2 = Sub.Option_Revenue * `Purchase_Original_Amount_BCA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_BCA3 = Sub.Option_Revenue * `Purchase_Original_Amount_BCA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_BCA4 = Sub.Option_Revenue * `Purchase_Original_Amount_BCA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_D_1 = Sub.Option_Revenue * Purchase_Original_Amount_D_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_D_2 = Sub.Option_Revenue * Purchase_Original_Amount_D_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_D_3 = Sub.Option_Revenue * Purchase_Original_Amount_D_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_D_t = Sub.Option_Revenue * Purchase_Original_Amount_D_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_D1 = Sub.Option_Revenue * `Purchase_Original_Amount_D+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_D2 = Sub.Option_Revenue * `Purchase_Original_Amount_D+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_D3 = Sub.Option_Revenue * `Purchase_Original_Amount_D+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Revenue_Purchase_Original_Amount_D4 = Sub.Option_Revenue * `Purchase_Original_Amount_D+4`)
+
+
+##
+
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_ENDA_1 = Sub.Option_Spending * Purchase_Original_Amount_ENDA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_ENDA_2 = Sub.Option_Spending * Purchase_Original_Amount_ENDA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_ENDA_3 = Sub.Option_Spending * Purchase_Original_Amount_ENDA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_ENDA_t = Sub.Option_Spending * Purchase_Original_Amount_ENDA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_ENDA1 = Sub.Option_Spending * `Purchase_Original_Amount_ENDA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_ENDA2 = Sub.Option_Spending * `Purchase_Original_Amount_ENDA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_ENDA3 = Sub.Option_Spending * `Purchase_Original_Amount_ENDA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_ENDA4 = Sub.Option_Spending * `Purchase_Original_Amount_ENDA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_bxg_1 = Sub.Option_Spending * Purchase_Original_Amount_bxg_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_bxg_2 = Sub.Option_Spending * Purchase_Original_Amount_bxg_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_bxg_3 = Sub.Option_Spending * Purchase_Original_Amount_bxg_3)
+#tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_bxg_4 = Sub.Option_Spending * Purchase_Original_Amount_bxg_4)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_bxg_t = Sub.Option_Spending * Purchase_Original_Amount_bxg_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_bxg1 = Sub.Option_Spending * `Purchase_Original_Amount_bxg+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_bxg2 = Sub.Option_Spending * `Purchase_Original_Amount_bxg+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_bxg4 = Sub.Option_Spending * `Purchase_Original_Amount_bxg+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_BCA_1 = Sub.Option_Spending * Purchase_Original_Amount_BCA_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_BCA_2 = Sub.Option_Spending * Purchase_Original_Amount_BCA_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_BCA_3 = Sub.Option_Spending * Purchase_Original_Amount_BCA_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_BCA_t = Sub.Option_Spending * Purchase_Original_Amount_BCA_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_BCA1 = Sub.Option_Spending * `Purchase_Original_Amount_BCA+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_BCA2 = Sub.Option_Spending * `Purchase_Original_Amount_BCA+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_BCA3 = Sub.Option_Spending * `Purchase_Original_Amount_BCA+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_BCA4 = Sub.Option_Spending * `Purchase_Original_Amount_BCA+4`)
+
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_D_1 = Sub.Option_Spending * Purchase_Original_Amount_D_1)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_D_2 = Sub.Option_Spending * Purchase_Original_Amount_D_2)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_D_3 = Sub.Option_Spending * Purchase_Original_Amount_D_3)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_D_t = Sub.Option_Spending * Purchase_Original_Amount_D_t)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_D1 = Sub.Option_Spending * `Purchase_Original_Amount_D+1`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_D2 = Sub.Option_Spending * `Purchase_Original_Amount_D+2`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_D3 = Sub.Option_Spending * `Purchase_Original_Amount_D+3`)
+tabla6 <- tabla6 %>% mutate(Sub.Option_Spending_Purchase_Original_Amount_D4 = Sub.Option_Spending * `Purchase_Original_Amount_D+4`)
+
+
 
 #############################################
 
@@ -2483,6 +2993,7 @@ tabla6 <- tabla6 %>% mutate(Sub.Option_Credit_Central_bank_T3_NCP_gdp = Sub.Opti
 tabla6 <- tabla6 %>% mutate(Sub.Option_Credit_Central_bank_T4_NCP_gdp = Sub.Option_Credit_Central_bank * `T+4_NCP_gdp`)
 
 #############################################
+
 # Buscamos NAs
 
 colSums(is.na(tabla6))
@@ -2549,7 +3060,13 @@ tabla6 <- tabla6 %>% select(-Actual.Amount)
 glimpse(tabla6)
 colnames(tabla6)
 
-tabla6 <- tabla6[, -c(162:329)]
+###########################################################################################
+###########################################################################################
+###########################################################################################
+###########################################################################################
+###########################################################################################
+
+tabla6 <- tabla6[, -c(164:331)]
 
 ###########################################################################################
 
@@ -2635,7 +3152,7 @@ tabla6 <- tabla6 %>%
 
 colnames(tabla6)
 
-################################
+###############################
 
 tabla6 <- tabla6 %>%
   mutate(Year = year(QPC_Test_Date))
@@ -2646,11 +3163,18 @@ tabla6 <- tabla6 %>%
 tabla6 <- tabla6 %>%
   mutate(shock_II = ifelse(Year %in% c(2009, 2010, 2022, 2023, 2024), 1, 0))
 
-tabla6 <- tabla6 %>% select(-Year)
+#tabla6 <- tabla6 %>% select(-Year)
 
 ######################################################################################
 
 
+tabla6 <- tabla6 %>%
+  mutate(GRA_redux = if_else(`Arrangement.Type_EFF` == 1 | 
+                         `Arrangement.Type_SBA` == 1, 1, 0))
+
+tabla6 <- tabla6 %>%
+  mutate(PRGT_redux = if_else(`Arrangement.Type_ECF` == 1 | 
+                         `Arrangement.Type_SCF` == 1, 1, 0))
 
 ########################################################################################
 
@@ -2660,6 +3184,6 @@ names(tabla6) <- gsub("\\+", "X", names(tabla6))
 ###########################################################################################
 
 # Pasar a excel la table
-write_xlsx(tabla6, "C:/Users/HP/Desktop/Tesis UDESA/tabla_para_modelos12.xlsx")
+write_xlsx(tabla6, "C:/Users/HP/Desktop/Tesis UDESA/tabla_para_modelos15.xlsx")
 
 

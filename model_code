@@ -19,23 +19,25 @@ library (randomForest)
 library(caret)
 library(ranger)
 library(lubridate)
+library(pROC)
+library(shapviz)
 ```
 
 # Database
 
 ```{r}
 library(readxl)
-base <- read_excel("C:/Users/HP/Desktop/Tesis UDESA/tabla_para_modelos12.xlsx")
+base <- read_excel("C:/Users/HP/Desktop/Tesis UDESA/tabla_para_modelos15.xlsx")
 
 ```
 
-```{r echo=TRUE}
+```{r include=FALSE}
 glimpse(base, width=1)
 
 ```
 
-```{r echo=FALSE}
 
+```{r echo=FALSE}
 base <- base %>%
   mutate(Year = year(QPC_Test_Date)) %>%
   filter(Year >= 2003 & Year <= 2024)
@@ -64,23 +66,26 @@ ggplot(datos_anuales, aes(x = Year, y = n, fill = Status)) +
   geom_text(
     data = etiquetas,
     aes(y = posicion_etiqueta, label = ifelse(n > 0, n, "")),
-    size = 3.5,
-    family = "serif",
+    size = 2.5,
+    family = "sans",
     color = "white",
     fontface = "bold"
   ) +
   scale_fill_manual(
     values = colorRampPalette(c("#3A5F7F", "#A83232"))(num_estados)
   ) +
-  labs(x = "Año", y = "Número de QPCs", fill = "Status") +
-  theme_minimal(base_family = "serif", base_size = 16) +
+  labs(x = "", y = "QPCs", fill = "Status") +
+  theme_minimal(base_family = "sans", base_size = 11) +
   theme(
     axis.text.x = element_text(
+      family = "sans",  # Esto ya incluye axis.text.x
       angle = 90,
       vjust = 0.5,
       hjust = 1,
       size = 11
     ),
+    axis.text.y = element_text(family = "sans"),  # Y-axis labels  
+    axis.title = element_text(family = "sans"),   # Axis titles
     axis.line = element_line(color = "black"),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
@@ -92,6 +97,8 @@ ggplot(datos_anuales, aes(x = Year, y = n, fill = Status)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
 ```
 
+
+
 ```{r}
 length(unique(base$Country.Code))
 length(unique(base$Arrangement.Number))
@@ -99,7 +106,6 @@ length(unique(base$Arrangement.Number))
 ```
 
 ```{r echo=FALSE}
-
 datos_anuales <- base %>%
   count(Arrangement.Type, Status) %>% 
   mutate(
@@ -118,24 +124,28 @@ etiquetas <- datos_anuales %>%
     posicion_etiqueta = posicion_cumulativa - (n / 2)
   )
 
+# Filtrar etiquetas para mostrar solo en las primeras 4 columnas
+etiquetas_filtradas <- etiquetas %>%
+  filter(as.numeric(Arrangement.Type) <= 4)
+
 # Obtener número único de estados para la paleta de colores
 num_estados <- nlevels(datos_anuales$Status)
 
 ggplot(datos_anuales, aes(x = Arrangement.Type, y = n, fill = Status)) +
   geom_col(position = position_stack(), color = "black", width = 0.7) +
   geom_text(
-    data = etiquetas,
+    data = etiquetas_filtradas,  # Usar las etiquetas filtradas
     aes(y = posicion_etiqueta, label = ifelse(n > 0, n, "")),
-    size = 3.5,
-    family = "serif",
+    size = 2.5,
+    family = "sans",
     color = "white",
     fontface = "bold"
   ) +
   scale_fill_manual(
     values = colorRampPalette(c("#3A5F7F", "#A83232"))(num_estados)
   ) +
-  labs(x = "Clase de programa", y = "Número de QPCs", fill = "Status") +
-  theme_minimal(base_family = "serif", base_size = 16) +
+  labs(x = "Program type", y = "QPCs", fill = "Status") +
+  theme_minimal(base_family = "sans", base_size = 11) +
   theme(
     axis.text.x = element_text(
       angle = 90,
@@ -154,8 +164,8 @@ ggplot(datos_anuales, aes(x = Arrangement.Type, y = n, fill = Status)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
 ```
 
-```{r echo=FALSE}
 
+```{r echo=FALSE}
 datos_anuales <- base %>%
   count(QPC_Criteria_Order, Status) %>% 
   mutate(
@@ -175,26 +185,32 @@ etiquetas <- datos_anuales %>%
 # Obtener número único de estados para la paleta de colores
 num_estados <- nlevels(datos_anuales$Status)
 
+# Obtener las etiquetas actuales del factor
+etiquetas_actuales <- levels(datos_anuales$QPC_Criteria_Order)
+
+# Reemplazar las primeras dos etiquetas
+etiquetas_nuevas <- etiquetas_actuales
+etiquetas_nuevas[1] <- "External"
+etiquetas_nuevas[2] <- "Fiscal"
+
 ggplot(datos_anuales, aes(x = QPC_Criteria_Order, y = n, fill = Status)) +
   geom_col(position = position_stack(), color = "black", width = 0.7) +
   geom_text(
     data = etiquetas,
     aes(y = posicion_etiqueta, label = ifelse(n > 0, n, "")),
-    size = 3.5,
-    family = "serif",
+    size = 3,
+    family = "sans",
     color = "white",
     fontface = "bold"
   ) +
   scale_fill_manual(
     values = colorRampPalette(c("#3A5F7F", "#A83232"))(num_estados)
   ) +
-  labs(x = "Tipo de QPC (32: externo; 135: fiscal)", y = "Número de QPCs", fill = "Status") +
-  theme_minimal(base_family = "serif", base_size = 16) +
+  scale_x_discrete(labels = etiquetas_nuevas) +
+  labs(x = "", y = "QPCs", fill = "Status") +
+  theme_minimal(base_family = "sans", base_size = 11) +
   theme(
-    axis.text.x = element_text(
-      angle = 90,
-      vjust = 0.5,
-      hjust = 1,
+    axis.text.x = element_text(  # Eliminamos la rotación de 90°
       size = 11
     ),
     axis.line = element_line(color = "black"),
@@ -208,8 +224,9 @@ ggplot(datos_anuales, aes(x = QPC_Criteria_Order, y = n, fill = Status)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
 ```
 
-```{r echo=FALSE}
 
+
+```{r echo=FALSE}
 datos_anuales <- base %>%
   count(R, Status) %>% 
   mutate(
@@ -226,24 +243,28 @@ etiquetas <- datos_anuales %>%
     posicion_etiqueta = posicion_cumulativa - (n / 2)
   )
 
+# Filtrar etiquetas para mostrar solo en las primeras 7 columnas
+etiquetas_filtradas <- etiquetas %>%
+  filter(as.numeric(R) <= 7)
+
 # Obtener número único de estados para la paleta de colores
 num_estados <- nlevels(datos_anuales$Status)
 
 ggplot(datos_anuales, aes(x = R, y = n, fill = Status)) +
   geom_col(position = position_stack(), color = "black", width = 0.7) +
   geom_text(
-    data = etiquetas,
+    data = etiquetas_filtradas,  # Usar las etiquetas filtradas
     aes(y = posicion_etiqueta, label = ifelse(n > 0, n, "")),
-    size = 3.5,
-    family = "serif",
+    size = 2.5,
+    family = "sans",
     color = "white",
     fontface = "bold"
   ) +
   scale_fill_manual(
     values = colorRampPalette(c("#3A5F7F", "#A83232"))(num_estados)
   ) +
-  labs(x = "Revisión", y = "Número de QPCs", fill = "Status") +
-  theme_minimal(base_family = "serif", base_size = 16) +
+  labs(x = "", y = "QPCs", fill = "Status") +
+  theme_minimal(base_family = "sans", base_size = 11) +
   theme(
     axis.text.x = element_text(
       angle = 90,
@@ -260,23 +281,40 @@ ggplot(datos_anuales, aes(x = R, y = n, fill = Status)) +
     legend.position = "top"
   ) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
+
 ```
 
 ```{r include=FALSE}
+
 base$Country.Code <- as.numeric(base$Country.Code)
 base <- base %>% select(-Key_corta)
 base <- base %>% select(-Key_min)
 base <- base %>% select(-QPC_Test_Date)
 base <- base %>% select(-Year)
 base <- base %>% select(-Arrangement.Type)
-base <- base %>% select(-QPC_Amount_spam)
-
+#base <- base %>% select(-QPC_Amount_spam)
+base <- base %>% select(-Revised.Amount)
+base <- base %>% select(-QPC_Adjusted_Amount_real)
+base <- base %>% select(-QPC_Actual_Amount_real)
 
 base <- base %>%
   arrange(Arrangement.Number, Country.Code)
+
 base$Status <- as.factor(base$Status)
+
+base <- base %>%
+  filter(Precautionary != 1)
+
+base <- base %>% select(-Precautionary)
+
 unique(base$Status)
 ```
+
+```{r echo=TRUE}
+glimpse(base, width=1)
+
+```
+
 
 # Train-validation-test split
 
@@ -301,23 +339,24 @@ training_prog <- c(501, 502, 503, 505, 507, 508, 510, 511, 512, 513,
                    654, 655, 656, 657, 661, 662, 670, 671, 672, 674, 
                    675, 676, 678, 679, 680, 682, 683, 684, 685, 687, 
                    688, 689, 690, 692, 693, 695, 697, 698, 699, 701, 
-                   702, 703, 704, 705, 706, 707, 709, 710, 711, 712, 
-                   713, 714, 716, 717, 720, 723, 724, 725, 726, 729, 
-                   730, 731, 732, 734, 735, 738, 739, 741, 744, 745, 
+                   702, 703, 704, 705, 706, 707, 709, 710, 711, 712,
+                   713, 714, 716, 717, 720, 723, 724, 725, 726, 729,
+                   730, 731, 732, 734, 735, 738, 739, 741, 744, 745,
                    746, 747, 748)
 
-validation_prog <- c(749, 750, 752, 754, 755, 756, 757, 759, 760, 761,
-                     764, 765, 766, 768, 770, 771, 772, 773, 774, 777, 
-                     778, 780, 782, 783, 785, 786, 789, 790, 792, 793, 
-                     794, 795, 799, 800, 802, 805, 806, 807, 808, 809, 
+ 
+validation_prog <- c(749, 750, 752, 754, 755, 756, 757, 759, 760, 761, 
+                     764, 765, 766, 768, 770, 771, 772, 773, 774, 777,
+                     778, 780, 782, 783, 785, 786, 789, 790, 792, 793,
+                     794, 795, 799, 800, 802, 805, 806, 807, 808, 809,
                      810, 812, 814, 815, 816, 821, 822, 823)
-
+            
 
 test_prog <-       c(781, 801, 824, 825, 826, 828, 831, 832, 833, 834, 
                      838, 840, 842, 843, 845, 847, 848, 849, 850, 851, 
                      854, 855, 856, 858, 859, 860, 861, 862, 863, 872, 
                      873, 874, 878, 879, 880, 881, 882, 883, 886, 889, 
-                     891, 894, 898)
+                     891, 894, 896)
 
 
 all_prog <- union(training_prog, union(validation_prog, test_prog))
@@ -386,449 +425,6 @@ round(prop.table(sort(table(validation_set$QPC_Criteria_Order[validation_set$Sta
 round(prop.table(sort(table(test_set$QPC_Criteria_Order[test_set$Status == "0"]))),2)
 ```
 
-
-# Modelo Logit-Lasso (modelo benchmark)
-
-## Smote (menor desequilibrio en el train set)
-
-```{r}
-summary(training_set$Status)
-round(prop.table(summary(training_set$Status)),2)
-```
-
-```{r}
-library(smotefamily)
-train_numeric <- training_set
-smote_result <- SMOTE(train_numeric[, -which(names(train_numeric) == "Status")],
-                      train_numeric$Status,
-                      K = 5, dup_size = 2)
-# K = Número de vecinos más cercanos (k-nearest neighbors) utilizados para generar cada ejemplo sintético.
-# dup_size = 2 → se genera 1 nuevo ejemplo sintético por cada instancia minoritaria.
-train <- smote_result$data
-train$Status <- as.factor(train$class)
-train <- train %>% select(-class)
-train <- train %>%
-  relocate(Status, .before = 1)
-unique(train$Status)
-summary(train$Status)
-round(prop.table(summary(train$Status)),2)
-```
-
-## Ajuste del modelo en train set
-
-```{r}
-logit=glm(Status ~ . , data=train, family="binomial")
-num_explanatory_vars <- length(coef(logit)) - 1
-num_explanatory_vars
-```
-
-## 5-fold cross validacion del hyperparametro de regularización
-
-```{r}
-library(glmnet)
-XX<-model.matrix(logit)
-ncol(XX)
-train$Status <- as.numeric(as.character(train$Status))
-ajuste.elastic = glmnet(XX, train$Status, alpha=1, family = "binomial")  
-```
-
-```{r}
-plot(ajuste.elastic,label = T,xvar="lambda",lwd=2,main="")
-```
-
-```{r}
-elastic.crossval<-cv.glmnet(XX, train$Status, nfolds = 5, alpha=1, family = "binomial")
-elastic.crossval
-elastic.1se<-glmnet(XX, train$Status, alpha=1,lambda = elastic.crossval$lambda.1se, family = "binomial")
-```
-
-```{r}
-plot(elastic.crossval)
-```
-
-```{r}
-validation_numeric <- validation_set %>%
-  mutate(across(.cols = -Status, .fns = ~ as.numeric(as.factor(.))))
-validation_numeric <- validation_numeric %>% select(-Status)
-validation_numeric <- validation_numeric %>% mutate(`(Intercept)` = 1, .before = 1)
-VV <- as.matrix(validation_numeric)
-ncol(VV)
-```
-
-## Obtencion del threhold óptimo sobre validation set
-
-```{r}
-pred_prob <- predict(elastic.1se, s = elastic.crossval$lambda.1se, newx = VV, type = "response")
-```
-
-```{r}
-pred_NET_train <- ifelse(pred_prob > 0.5, 1, 0)
-
-conf_matrix <- table(validation_set$Status, pred_NET_train)
-rownames(conf_matrix) <- paste("Actual", rownames(conf_matrix), sep = ":")
-colnames(conf_matrix) <- paste("Pred", colnames(conf_matrix), sep = ":")
-print(conf_matrix)
-
-TP <- ifelse(nrow(conf_matrix) >= 2 & ncol(conf_matrix) >= 2, conf_matrix[2, 2], 0)
-TN <- ifelse(nrow(conf_matrix) >= 1 & ncol(conf_matrix) >= 1, conf_matrix[1, 1], 0)
-FP <- ifelse(nrow(conf_matrix) >= 1 & ncol(conf_matrix) >= 2, conf_matrix[1, 2], 0)
-FN <- ifelse(nrow(conf_matrix) >= 2 & ncol(conf_matrix) >= 1, conf_matrix[2, 1], 0)
-
-accuracy <- (TP + TN) / sum(conf_matrix)
-cat("Accuracy:", accuracy, "\n")
-
-precision <- TP / (TP + FP)
-cat("Precision:", precision, "\n")
-
-recall <- TP / (TP + FN)
-cat("Recall:", recall, "\n")
-
-f1_score <- 2 * (precision * recall) / (precision + recall)
-cat("F1 Score:", f1_score, "\n")
-```
-
-```{r echo=FALSE}
-
-library(ROCR)
-prediction_NET_train <- prediction(pred_prob, validation_set$Status)
-performanceNETtrain <- performance(prediction_NET_train, "tpr", "fpr")
-plot(performanceNETtrain, main = "", col = "#3A5F7F", lwd = 2)
-auc_value <- performance(prediction_NET_train, "auc")@y.values[[1]]
-cat("AUC:", auc_value, "\n")
-```
-
-```{r include=FALSE}
-
-
-best_threshold <- 0
-best_f1 <- 0
-thresholds <- seq(0, 1, by = 0.01)
-f1_scores <- numeric(length(thresholds))
-
-
-x_validation_set <- validation_set[,-1] 
-
-for (i in seq_along(thresholds)) {
-  current_threshold <- thresholds[i]
-  pred_probs_NET_test <- predict(elastic.1se, s = elastic.crossval$lambda.1se, newx = VV, type = "response")
-  pred_NET_test <- ifelse(pred_probs_NET_test > current_threshold, 1, 0)
-  confmatrix <- table(factor(validation_set$Status, levels = c(0,1)), 
-                      factor(pred_NET_test, levels = c(0,1)))
-  dimnames(confmatrix) <- list(
-    Actual = c("Actual:0", "Actual:1"),
-    Predicted = c("Pred:0", "Pred:1")
-  )
-  print(confmatrix)
-  sum_access <- sum(validation_set$Totalaccess)
-  validation_set <- validation_set %>%
-    mutate(
-      w = Totalaccess / sum_access,
-      PredictedStatus = pred_NET_test,
-      TP = ifelse(Status == 1 & PredictedStatus == 1, 1, 0),
-      FP = ifelse(Status == 0 & PredictedStatus == 1, 1, 0),
-      FN = ifelse(Status == 1 & PredictedStatus == 0, 1, 0)
-    )
-  weighted_TP <- sum(validation_set$w * validation_set$TP)
-  weighted_FP <- sum(validation_set$w * validation_set$FP)
-  weighted_FN <- sum(validation_set$w * validation_set$FN)
-  weighted_F1 <- (2 * weighted_TP) / (2 * weighted_TP + weighted_FP + weighted_FN)
-  f1_scores[i] <- weighted_F1
-  cat(sprintf("Threshold: %.2f, Weighted F1-W Score: %.7f\n", current_threshold, weighted_F1))
-  if (weighted_F1 > best_f1) {
-    best_f1 <- weighted_F1
-    best_threshold <- current_threshold
-  }
-}
-#cat("\nBest threshold:", best_threshold, "with weighted F1-W score:", best_f1, "\n")
-results <- data.frame(Threshold = thresholds, F1 = f1_scores)
-best_idx <- which.max(results$F1)
-
-
-library(ggplot2)
-ggplot(results, aes(x = Threshold, y = F1)) +
-  geom_line(color = "#3A5F7F", size = 1.2) +
-  geom_vline(xintercept = best_threshold, 
-             color = "black", 
-             linetype = "dashed", 
-             size = 0.7) +  # Dashed line for best threshold
-  geom_point(
-    data = results[best_idx, ], 
-    aes(x = Threshold, y = F1),
-    color = "black", 
-    size = 3
-  ) +
-  annotate(
-    "text", 
-    x = best_threshold, 
-    y = max(results$F1) * (2),
-    label = paste0("Best: ", round(best_threshold, 2), "\nF1-W: ", round(best_f1, 4)),
-    color = "black", 
-    hjust = 0.5,
-    family = "serif",
-    size = 5  # Match font size to theme
-  ) +
-  labs(
-    title = "",  # Removed title to match ROC plot style
-    y = "F1-W Score",
-    x = "Threshold"
-  ) +
-  theme_minimal(base_family = "serif", base_size = 16) +  # Consistent font/size
-  theme(
-    axis.text.x = element_text(
-      angle = 90, 
-      vjust = 0.5, 
-      hjust = 1,
-      family = "serif", 
-      size = 16
-    ),
-    axis.text.y = element_text(
-      family = "serif", 
-      size = 16
-    ),
-    axis.line = element_line(color = "black"),
-    panel.grid = element_blank(),  # Remove grid lines (like ROC plot)
-    plot.margin = unit(c(1, 1, 1, 1), "cm")  # Adjust margins
-  ) +
-  scale_x_continuous(breaks = seq(0, 1, by = 0.1)) +
-  ylim(0, 1) +
-  coord_cartesian(clip = "off")  # Prevent text annotation clipping
-```
-
-```{r}
-best_threshold
-```
-
-```{r echo=FALSE}
-
-pred_NET_train <- ifelse(pred_prob > best_threshold, 1, 0)
-
-conf_matrix <- table(validation_set$Status, pred_NET_train)
-rownames(conf_matrix) <- paste("Actual", rownames(conf_matrix), sep = ":")
-colnames(conf_matrix) <- paste("Pred", colnames(conf_matrix), sep = ":")
-print(conf_matrix)
-
-TP <- ifelse(nrow(conf_matrix) >= 2 & ncol(conf_matrix) >= 2, conf_matrix[2, 2], 0)
-TN <- ifelse(nrow(conf_matrix) >= 1 & ncol(conf_matrix) >= 1, conf_matrix[1, 1], 0)
-FP <- ifelse(nrow(conf_matrix) >= 1 & ncol(conf_matrix) >= 2, conf_matrix[1, 2], 0)
-FN <- ifelse(nrow(conf_matrix) >= 2 & ncol(conf_matrix) >= 1, conf_matrix[2, 1], 0)
-
-accuracy <- (TP + TN) / sum(conf_matrix)
-cat("Accuracy:", accuracy, "\n")
-
-precision <- TP / (TP + FP)
-cat("Precision:", precision, "\n")
-
-recall <- TP / (TP + FN)
-cat("Recall:", recall, "\n")
-
-f1_score <- 2 * (precision * recall) / (precision + recall)
-cat("F1 Score:", f1_score, "\n")
-```
-
-```{r}
-library(dplyr)
-
-sum_access <- sum(validation_set$Totalaccess)
-validation_set <- validation_set %>%
-  mutate(w = Totalaccess / sum_access)
-
-validation_set$PredictedStatus <- pred_NET_train
-
-validation_set <- validation_set %>%
-  mutate(
-    TP = ifelse(Status == 1 & PredictedStatus == 1, 1, 0),
-    FP = ifelse(Status == 0 & PredictedStatus == 1, 1, 0),
-    FN = ifelse(Status == 1 & PredictedStatus == 0, 1, 0)
-  )
-
-weighted_TP <- sum(validation_set$w * validation_set$TP)
-weighted_FP <- sum(validation_set$w * validation_set$FP)
-weighted_FN <- sum(validation_set$w * validation_set$FN)
-
-weighted_F1 <- (2 * weighted_TP) / (2 * weighted_TP + weighted_FP + weighted_FN)
-
-cat(sprintf("Weighted F1 Score: %.7f\n", weighted_F1))
-
-validation_set <- validation_set %>% select(-w)
-validation_set <- validation_set %>% select(-TP)
-validation_set <- validation_set %>% select(-FP)
-validation_set <- validation_set %>% select(-FN)
-validation_set <- validation_set %>% select(-PredictedStatus)
-```
-
-## Nuevo train set (train set original + validation set)
-
-```{r}
-combined_set <- rbind(training_set, validation_set)
-summary(combined_set$Status)
-round(prop.table(summary(combined_set$Status)),2)
-```
-
-## Smote (sobre el nuevo train set)
-
-```{r}
-library(smotefamily)
-train_numeric <- combined_set
-train_numeric$Status <- as.factor(train_numeric$Status)
-
-smote_result <- SMOTE(train_numeric[, -which(names(train_numeric) == "Status")],
-                      train_numeric$Status,
-                      K = 5, dup_size = 2)
-
-train <- smote_result$data
-train$Status <- as.factor(train$class)
-train <- train %>% select(-class)
-train <- train %>%
-  relocate(Status, .before = 1)
-
-summary(train$Status)
-round(prop.table(summary(train$Status)),2)
-
-combined_numeric <- train %>%
-  mutate(across(.cols = -Status, .fns = ~ as.numeric(as.factor(.))))
-
-combined_numeric$Status <- as.factor(combined_numeric$Status)
-unique(combined_numeric$Status)
-```
-
-## Modelo Logit-Lasso (re-entrenado sobre el nuevo train set)
-
-```{r}
-logit=glm(Status ~ . , data=combined_numeric, family="binomial")
-num_explanatory_vars <- length(coef(logit)) - 1
-num_explanatory_vars
-```
-
-```{r}
-library(glmnet)
-XX<-model.matrix(logit)
-ncol(XX)
-combined_numeric$Status <- as.numeric(as.character(combined_numeric$Status))
-ajuste.elastic = glmnet(XX, combined_numeric$Status, alpha=1, family="binomial")  
-```
-
-```{r}
-plot(ajuste.elastic,label = T,xvar="lambda",lwd=2,main="")
-```
-
-```{r}
-elastic.crossval<-cv.glmnet(XX, combined_numeric$Status, nfolds = 5, alpha=1, family="binomial")
-elastic.crossval
-elastic.1se<-glmnet(XX, combined_numeric$Status, alpha=1,lambda = elastic.crossval$lambda.1se, family="binomial")
-```
-
-```{r}
-plot(elastic.crossval)
-```
-
-## Performance en test set (out of sample)
-
-```{r}
-test_numeric <- test_set
-test_numeric <- test_numeric %>% select(-Status)
-test_numeric <- test_numeric %>% mutate(`(Intercept)` = 1, .before = 1)
-ZZ <- model.matrix(~ . -1, data=test_numeric)
-```
-
-```{r}
-pred_probs_NET_test <- predict(elastic.1se, s = elastic.crossval$lambda.1se, newx = ZZ, type = "response")
-```
-
-```{r}
-pred_NET_test <- ifelse(pred_probs_NET_test > best_threshold, 1, 0)
-```
-
-```{r}
-conf_matrix <- table(test_set$Status, pred_NET_test)
-rownames(conf_matrix) <- paste("Actual", rownames(conf_matrix), sep = ":")
-colnames(conf_matrix) <- paste("Pred", colnames(conf_matrix), sep = ":")
-print(conf_matrix)
-
-TP <- ifelse(nrow(conf_matrix) >= 2 & ncol(conf_matrix) >= 2, conf_matrix[2, 2], 0)
-TN <- ifelse(nrow(conf_matrix) >= 1 & ncol(conf_matrix) >= 1, conf_matrix[1, 1], 0)
-FP <- ifelse(nrow(conf_matrix) >= 1 & ncol(conf_matrix) >= 2, conf_matrix[1, 2], 0)
-FN <- ifelse(nrow(conf_matrix) >= 2 & ncol(conf_matrix) >= 1, conf_matrix[2, 1], 0)
-
-accuracy <- (TP + TN) / sum(conf_matrix)
-cat("Accuracy:", accuracy, "\n")
-
-precision <- TP / (TP + FP)
-cat("Precision:", precision, "\n")
-
-recall <- TP / (TP + FN)
-cat("Recall:", recall, "\n")
-
-f1_score <- 2 * (precision * recall) / (precision + recall)
-cat("F1 Score:", f1_score, "\n")
-```
-
-```{r}
-library(dplyr)
-sum_access <- sum(test_set$Totalaccess)
-test_set <- test_set %>%
-  mutate(w = Totalaccess / sum_access)
-
-test_set$PredictedStatus <- pred_NET_test
-
-test_set <- test_set %>%
-  mutate(
-    TP = ifelse(Status == 1 & PredictedStatus == 1, 1, 0),
-    FP = ifelse(Status == 0 & PredictedStatus == 1, 1, 0),
-    FN = ifelse(Status == 1 & PredictedStatus == 0, 1, 0)
-  )
-
-weighted_TP <- sum(test_set$w * test_set$TP)
-weighted_FP <- sum(test_set$w * test_set$FP)
-weighted_FN <- sum(test_set$w * test_set$FN)
-
-weighted_F1 <- (2 * weighted_TP) / (2 * weighted_TP + weighted_FP + weighted_FN)
-
-cat(sprintf("Weighted F1 Score: %.7f\n", weighted_F1))
-
-test_set <- test_set %>% select(-w)
-test_set <- test_set %>% select(-TP)
-test_set <- test_set %>% select(-FP)
-test_set <- test_set %>% select(-FN)
-test_set <- test_set %>% select(-PredictedStatus)
-```
-
-```{r}
-library(pROC)
-
-
-roc_NETtrain <- roc(validation_set$Status, pred_prob)
-roc_NET <- roc(test_set$Status, pred_probs_NET_test)
-
-common_points <- seq(0, 1, length.out = 100)
-roc_NET_interp_train <- approx(roc_NETtrain$specificities, roc_NETtrain$sensitivities, xout = common_points)
-roc_NET_interp <- approx(roc_NET$specificities, roc_NET$sensitivities, xout = common_points)
-
-roc_data <- data.frame(
-  FPR = c(roc_NET_interp_train$x, roc_NET_interp$x),
-  TPR = c(roc_NET_interp_train$y, roc_NET_interp$y),
-  Model = factor(rep(c("ELASTIC NET (train)", "ELASTIC NET (test)"), each = length(common_points)))
-)
-
-library(ggplot2)
-
-ggplot(roc_data, aes(x = 1 - FPR, y = TPR, color = Model, linetype = Model)) +
-  geom_line(size = 1.2) +
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "black") +  # Add 45-degree line
-  geom_hline(yintercept = 1, linetype = "dashed", color = "black") +  # Add horizontal line at y = 1
-  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +  # Add vertical line at x = 0
-  geom_vline(xintercept = 1, linetype = "dashed", color = "black") +  # Add vertical line at x = 1
-  labs(title = "", x = "False Positive Rate", y = "True Positive Rate") +
-  theme_minimal(base_family = "serif", base_size = 16) +
-  theme(
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, family = "serif", size = 16),
-    axis.text.y = element_text(family = "serif", size = 16),
-    axis.line = element_line(color = "black"),
-    panel.grid = element_blank()
-  ) +
-  scale_color_manual(values = c("#A83232", "#3A5F7F")) +
-  scale_linetype_manual(values = c("solid", "solid"))
-```
-
 # Modelo Random Forest
 
 ## Smote (menor desequilibrio en el train set)
@@ -870,7 +466,7 @@ n <- ncol(train)
 n
 heuristica <- sqrt(n)
 heuristica
-mtry_grid <- expand.grid(mtry = seq(30, 1253, by = 200))
+mtry_grid <- expand.grid(mtry = seq(40, n, by = 500))
 mtry_grid
 
 ```
@@ -886,12 +482,14 @@ mtry_cv = rf_model[["bestTune"]][["mtry"]]
 mtry_cv
 ```
 
+
 ## Ajuste del modelo en train y obtencion del threhold óptimo sobre validation set
 
 ```{r}
 
-bag.tit.rf_5cv_original = randomForest(Status ~ . , data=train,
-                                       ntree=100,
+bag.tit.rf_5cv_original = randomForest(Status ~ ., 
+                                       data=train,
+                                       ntree=50,
                                        mtry=mtry_cv, 
                                        importance =TRUE)
 ```
@@ -945,10 +543,10 @@ rownames(confmatrix) <- paste("Real", rownames(confmatrix), sep = ":")
 colnames(confmatrix) <- paste("Pred", colnames(confmatrix), sep = ":")
 print(confmatrix)
 
-TP <- confmatrix[2, 2]
-TN <- confmatrix[1, 1]
-FP <- confmatrix[1, 2]
-FN <- confmatrix[2, 1]
+TP <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 2, confmatrix[2, 2], 0)
+TN <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 1, confmatrix[1, 1], 0)
+FP <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 2, confmatrix[1, 2], 0)
+FN <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 1, confmatrix[2, 1], 0)
 
 accuracy <- (TP + TN) / sum(confmatrix)
 cat("Accuracy:", accuracy, "\n")
@@ -1069,7 +667,7 @@ ggplot(results, aes(x = Threshold, y = F1)) +
     label = paste0("Best: ", round(best_threshold, 2), "\nF1-W: ", round(best_f1, 4)),
     color = "black", 
     hjust = -0.1,
-    family = "serif",
+    family = "sans",
     size = 5  # Match font size to theme
   ) +
   labs(
@@ -1077,17 +675,17 @@ ggplot(results, aes(x = Threshold, y = F1)) +
     y = "F1-W Score",
     x = "Threshold"
   ) +
-  theme_minimal(base_family = "serif", base_size = 16) +  # Consistent font/size
+  theme_minimal(base_family = "sans", base_size = 11) +  # Consistent font/size
   theme(
     axis.text.x = element_text(
       angle = 90, 
       vjust = 0.5, 
       hjust = 1,
-      family = "serif", 
+      family = "sans", 
       size = 16
     ),
     axis.text.y = element_text(
-      family = "serif", 
+      family = "sans", 
       size = 16
     ),
     axis.line = element_line(color = "black"),
@@ -1110,10 +708,10 @@ rownames(confmatrix) <- paste("Real", rownames(confmatrix), sep = ":")
 colnames(confmatrix) <- paste("Pred", colnames(confmatrix), sep = ":")
 print(confmatrix)
 
-TP <- confmatrix[2, 2]
-TN <- confmatrix[1, 1]
-FP <- confmatrix[1, 2]
-FN <- confmatrix[2, 1]
+TP <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 2, confmatrix[2, 2], 0)
+TN <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 1, confmatrix[1, 1], 0)
+FP <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 2, confmatrix[1, 2], 0)
+FN <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 1, confmatrix[2, 1], 0)
 
 accuracy <- (TP + TN) / sum(confmatrix)
 cat("Accuracy:", accuracy, "\n")
@@ -1201,7 +799,7 @@ print(mtry_cv)
 
 ```{r}
 bag.tit.rf_5cv = randomForest(Status ~ . , data=train,
-                              ntree=200,
+                              ntree=100,
                               mtry=mtry_cv, 
                               importance =TRUE)
 ```
@@ -1256,10 +854,10 @@ rownames(confmatrix) <- paste("Real", rownames(confmatrix), sep = ":")
 colnames(confmatrix) <- paste("Pred", colnames(confmatrix), sep = ":")
 print(confmatrix)
 
-TP <- confmatrix[2, 2]
-TN <- confmatrix[1, 1]
-FP <- confmatrix[1, 2]
-FN <- confmatrix[2, 1]
+TP <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 2, confmatrix[2, 2], 0)
+TN <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 1, confmatrix[1, 1], 0)
+FP <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 2, confmatrix[1, 2], 0)
+FN <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 1, confmatrix[2, 1], 0)
 
 accuracy <- (TP + TN) / sum(confmatrix)
 cat("Accuracy:", accuracy, "\n")
@@ -1401,7 +999,7 @@ ggplot(results, aes(x = Threshold, y = F1)) +
     label = paste0("Best: ", round(best_threshold, 2), "\nF1-W: ", round(best_f1, 4)),
     color = "black", 
     hjust = -0.1,
-    family = "serif",
+    family = "sans",
     size = 5  # Match font size to theme
   ) +
   labs(
@@ -1409,17 +1007,17 @@ ggplot(results, aes(x = Threshold, y = F1)) +
     y = "F1-W Score",
     x = "Threshold"
   ) +
-  theme_minimal(base_family = "serif", base_size = 16) +  # Consistent font/size
+  theme_minimal(base_family = "sans", base_size = 11) +  # Consistent font/size
   theme(
     axis.text.x = element_text(
       angle = 90, 
       vjust = 0.5, 
       hjust = 1,
-      family = "serif", 
+      family = "sans", 
       size = 16
     ),
     axis.text.y = element_text(
-      family = "serif", 
+      family = "sans", 
       size = 16
     ),
     axis.line = element_line(color = "black"),
@@ -1433,6 +1031,7 @@ ggplot(results, aes(x = Threshold, y = F1)) +
 
 ```{r}
 
+library(pROC)
 predictions_train <- predict(bag.tit.rf_5cv_original, newdata = xval, type = "prob")
 predictions_test <- predict(bag.tit.rf_5cv, newdata = test_numeric, type = "prob")
 roc_NETtrain <- roc(validation_set$Status, predictions_train[, 2])
@@ -1453,16 +1052,17 @@ ggplot(roc_data, aes(x = 1 - FPR, y = TPR, color = Model, linetype = Model)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "black") +   
   geom_vline(xintercept = 1, linetype = "dashed", color = "black") +  
   labs(title = "", x = "False Positive Rate", y = "True Positive Rate") +
-  theme_minimal(base_family = "serif", base_size = 16) +
+  theme_minimal(base_family = "sans", base_size = 11) +
   theme(
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, family = "serif", size = 16),
-    axis.text.y = element_text(family = "serif", size = 16),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, family = "sans", size = 16),
+    axis.text.y = element_text(family = "sans", size = 16),
     axis.line = element_line(color = "black"),
     panel.grid = element_blank()
   ) +
   scale_color_manual(values = c("#A83232", "#3A5F7F")) +
   scale_linetype_manual(values = c("solid", "solid"))
 ```
+
 
 ```{r}
 test_numeric <- test_set
@@ -1475,15 +1075,15 @@ val_numeric <- test_numeric
 ## RF performance prediciendo QPCs fiscales (test set)
 
 ```{r}
-val_numeric_135 <- val_numeric %>%
+test_set_135 <- test_set %>%
   filter(QPC_Criteria_Order == 135)
 ```
 
 ```{r}
-pred.tit.bag.v_5cv = predict (bag.tit.rf_5cv ,newdata =val_numeric_135, type = "vote")#da la proporcion de arboles que eligen cada clase.
+pred.tit.bag.v_5cv = predict (bag.tit.rf_5cv ,newdata =test_set_135, type = "vote")#da la proporcion de arboles que eligen cada clase.
 
 #Pongo la etiqueta por el voto mayoritario de los arboles
-pred.tit.bag.label_5cv=rep(NA,dim(val_numeric_135)[1]) #como si hubiera missing values genero un vector de ceros
+pred.tit.bag.label_5cv=rep(NA,dim(test_set_135)[1]) #como si hubiera missing values genero un vector de ceros
 
 aux1=which(pred.tit.bag.v_5cv[,2]>best_threshold) 
 aux2=which(pred.tit.bag.v_5cv[,2]<=best_threshold)
@@ -1491,16 +1091,16 @@ pred.tit.bag.label_5cv[aux1]=1
 pred.tit.bag.label_5cv[aux2]=0
 
 #confusion matrix (test data)
-confmatrix <- table(val_numeric_135$Status, pred.tit.bag.label_5cv)
+confmatrix <- table(test_set_135$Status, pred.tit.bag.label_5cv)
 rownames(confmatrix) <- paste("Real", rownames(confmatrix), sep = ":")
 colnames(confmatrix) <- paste("Pred", colnames(confmatrix), sep = ":")
 print(confmatrix)
 
 # True Positive (TP), True Negative (TN), False Positive (FP), False Negative (FN)
-TP <- confmatrix[2, 2]
-TN <- confmatrix[1, 1]
-FP <- confmatrix[1, 2]
-FN <- confmatrix[2, 1]
+TP <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 2, confmatrix[2, 2], 0)
+TN <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 1, confmatrix[1, 1], 0)
+FP <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 2, confmatrix[1, 2], 0)
+FN <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 1, confmatrix[2, 1], 0)
 
 # Accuracy
 accuracy <- (TP + TN) / sum(confmatrix)
@@ -1522,13 +1122,13 @@ cat("F1 Score:", f1_score, "\n")
 ```{r}
 library(dplyr)
 #colnames(test)
-sum_access <- sum(val_numeric_135$Totalaccess)
-val_numeric_135 <- val_numeric_135 %>%
+sum_access <- sum(test_set_135$Totalaccess)
+test_set_135 <- test_set_135 %>%
   mutate(w = Totalaccess / sum_access)
 
-val_numeric_135$PredictedStatus <- pred.tit.bag.label_5cv
+test_set_135$PredictedStatus <- pred.tit.bag.label_5cv
 
-val_numeric_135 <- val_numeric_135 %>%
+test_set_135 <- test_set_135 %>%
   mutate(
     TP = ifelse(Status == 1 & PredictedStatus == 1, 1, 0),
     FP = ifelse(Status == 0 & PredictedStatus == 1, 1, 0),
@@ -1536,9 +1136,9 @@ val_numeric_135 <- val_numeric_135 %>%
   )
 
 # Calculate weighted TP, FP, and FN
-weighted_TP <- sum(val_numeric_135$w * val_numeric_135$TP)
-weighted_FP <- sum(val_numeric_135$w * val_numeric_135$FP)
-weighted_FN <- sum(val_numeric_135$w * val_numeric_135$FN)
+weighted_TP <- sum(test_set_135$w * test_set_135$TP)
+weighted_FP <- sum(test_set_135$w * test_set_135$FP)
+weighted_FN <- sum(test_set_135$w * test_set_135$FN)
 
 # Calculate the weighted F1 score
 weighted_F1 <- (2 * weighted_TP) / (2 * weighted_TP + weighted_FP + weighted_FN)
@@ -1547,25 +1147,25 @@ weighted_F1 <- (2 * weighted_TP) / (2 * weighted_TP + weighted_FP + weighted_FN)
 cat(sprintf("Weighted F1 Score: %.7f\n", weighted_F1))
 
 
-val_numeric_135 <- val_numeric_135 %>% select(-w)
-val_numeric_135 <- val_numeric_135 %>% select(-TP)
-val_numeric_135 <- val_numeric_135 %>% select(-FP)
-val_numeric_135 <- val_numeric_135 %>% select(-FN)
-val_numeric_135 <- val_numeric_135 %>% select(-PredictedStatus)
+test_set_135 <- test_set_135 %>% select(-w)
+test_set_135 <- test_set_135 %>% select(-TP)
+test_set_135 <- test_set_135 %>% select(-FP)
+test_set_135 <- test_set_135 %>% select(-FN)
+test_set_135 <- test_set_135 %>% select(-PredictedStatus)
 ```
 
 ## RF performance prediciendo QPCs externos (test set)
 
 ```{r}
-val_numeric_32 <- val_numeric %>%
+test_set_32 <- test_set %>%
   filter(QPC_Criteria_Order == 32)
 ```
 
 ```{r}
-pred.tit.bag.v_5cv = predict (bag.tit.rf_5cv ,newdata =val_numeric_32, type = "vote")#da la proporcion de arboles que eligen cada clase.
+pred.tit.bag.v_5cv = predict (bag.tit.rf_5cv ,newdata =test_set_32, type = "vote")#da la proporcion de arboles que eligen cada clase.
 
 #Pongo la etiqueta por el voto mayoritario de los arboles
-pred.tit.bag.label_5cv=rep(NA,dim(val_numeric_32)[1]) #como si hubiera missing values genero un vector de ceros
+pred.tit.bag.label_5cv=rep(NA,dim(test_set_32)[1]) #como si hubiera missing values genero un vector de ceros
 
 aux1=which(pred.tit.bag.v_5cv[,2]>best_threshold) 
 aux2=which(pred.tit.bag.v_5cv[,2]<=best_threshold)
@@ -1573,16 +1173,16 @@ pred.tit.bag.label_5cv[aux1]=1
 pred.tit.bag.label_5cv[aux2]=0
 
 #confusion matrix (test data)
-confmatrix <- table(val_numeric_32$Status, pred.tit.bag.label_5cv)
+confmatrix <- table(test_set_32$Status, pred.tit.bag.label_5cv)
 rownames(confmatrix) <- paste("Real", rownames(confmatrix), sep = ":")
 colnames(confmatrix) <- paste("Pred", colnames(confmatrix), sep = ":")
 print(confmatrix)
 
 # True Positive (TP), True Negative (TN), False Positive (FP), False Negative (FN)
-TP <- confmatrix[2, 2]
-TN <- confmatrix[1, 1]
-FP <- confmatrix[1, 2]
-FN <- confmatrix[2, 1]
+TP <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 2, confmatrix[2, 2], 0)
+TN <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 1, confmatrix[1, 1], 0)
+FP <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 2, confmatrix[1, 2], 0)
+FN <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 1, confmatrix[2, 1], 0)
 
 # Accuracy
 accuracy <- (TP + TN) / sum(confmatrix)
@@ -1603,13 +1203,13 @@ cat("F1 Score:", f1_score, "\n")
 
 ```{r}
 library(dplyr)
-sum_access <- sum(val_numeric_32$Totalaccess)
-val_numeric_32 <- val_numeric_32 %>%
+sum_access <- sum(test_set_32$Totalaccess)
+test_set_32 <- test_set_32 %>%
   mutate(w = Totalaccess / sum_access)
 
-val_numeric_32$PredictedStatus <- pred.tit.bag.label_5cv
+test_set_32$PredictedStatus <- pred.tit.bag.label_5cv
 
-val_numeric_32 <- val_numeric_32 %>%
+test_set_32 <- test_set_32 %>%
   mutate(
     TP = ifelse(Status == 1 & PredictedStatus == 1, 1, 0),
     FP = ifelse(Status == 0 & PredictedStatus == 1, 1, 0),
@@ -1617,9 +1217,9 @@ val_numeric_32 <- val_numeric_32 %>%
   )
 
 # Calculate weighted TP, FP, and FN
-weighted_TP <- sum(val_numeric_32$w * val_numeric_32$TP)
-weighted_FP <- sum(val_numeric_32$w * val_numeric_32$FP)
-weighted_FN <- sum(val_numeric_32$w * val_numeric_32$FN)
+weighted_TP <- sum(test_set_32$w * test_set_32$TP)
+weighted_FP <- sum(test_set_32$w * test_set_32$FP)
+weighted_FN <- sum(test_set_32$w * test_set_32$FN)
 
 # Calculate the weighted F1 score
 weighted_F1 <- (2 * weighted_TP) / (2 * weighted_TP + weighted_FP + weighted_FN)
@@ -1628,11 +1228,11 @@ weighted_F1 <- (2 * weighted_TP) / (2 * weighted_TP + weighted_FP + weighted_FN)
 cat(sprintf("Weighted F1 Score: %.7f\n", weighted_F1))
 
 
-val_numeric_32 <- val_numeric_32 %>% select(-w)
-val_numeric_32 <- val_numeric_32 %>% select(-TP)
-val_numeric_32 <- val_numeric_32 %>% select(-FP)
-val_numeric_32 <- val_numeric_32 %>% select(-FN)
-val_numeric_32 <- val_numeric_32 %>% select(-PredictedStatus)
+test_set_32 <- test_set_32 %>% select(-w)
+test_set_32 <- test_set_32 %>% select(-TP)
+test_set_32 <- test_set_32 %>% select(-FP)
+test_set_32 <- test_set_32 %>% select(-FN)
+test_set_32 <- test_set_32 %>% select(-PredictedStatus)
 ```
 
 ## RF performance prediciendo QPCs de principales deudores del FMI (test set)
@@ -1678,10 +1278,10 @@ colnames(confmatrix) <- paste("Pred", colnames(confmatrix), sep = ":")
 print(confmatrix)
 
 # True Positive (TP), True Negative (TN), False Positive (FP), False Negative (FN)
-TP <- confmatrix[2, 2]
-TN <- confmatrix[1, 1]
-FP <- confmatrix[1, 2]
-FN <- confmatrix[2, 1]
+TP <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 2, confmatrix[2, 2], 0)
+TN <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 1, confmatrix[1, 1], 0)
+FP <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 2, confmatrix[1, 2], 0)
+FN <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 1, confmatrix[2, 1], 0)
 
 # Accuracy
 accuracy <- (TP + TN) / sum(confmatrix)
@@ -1754,10 +1354,10 @@ colnames(confmatrix) <- paste("Pred", colnames(confmatrix), sep = ":")
 print(confmatrix)
 
 # True Positive (TP), True Negative (TN), False Positive (FP), False Negative (FN)
-TP <- confmatrix[2, 2]
-TN <- confmatrix[1, 1]
-FP <- confmatrix[1, 2]
-FN <- confmatrix[2, 1]
+TP <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 2, confmatrix[2, 2], 0)
+TN <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 1, confmatrix[1, 1], 0)
+FP <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 2, confmatrix[1, 2], 0)
+FN <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 1, confmatrix[2, 1], 0)
 
 # Accuracy
 accuracy <- (TP + TN) / sum(confmatrix)
@@ -1830,10 +1430,10 @@ colnames(confmatrix) <- paste("Pred", colnames(confmatrix), sep = ":")
 print(confmatrix)
 
 # True Positive (TP), True Negative (TN), False Positive (FP), False Negative (FN)
-TP <- confmatrix[2, 2]
-TN <- confmatrix[1, 1]
-FP <- confmatrix[1, 2]
-FN <- confmatrix[2, 1]
+TP <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 2, confmatrix[2, 2], 0)
+TN <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 1, confmatrix[1, 1], 0)
+FP <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 2, confmatrix[1, 2], 0)
+FN <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 1, confmatrix[2, 1], 0)
 
 # Accuracy
 accuracy <- (TP + TN) / sum(confmatrix)
@@ -1906,10 +1506,10 @@ colnames(confmatrix) <- paste("Pred", colnames(confmatrix), sep = ":")
 print(confmatrix)
 
 # True Positive (TP), True Negative (TN), False Positive (FP), False Negative (FN)
-TP <- confmatrix[2, 2]
-TN <- confmatrix[1, 1]
-FP <- confmatrix[1, 2]
-FN <- confmatrix[2, 1]
+TP <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 2, confmatrix[2, 2], 0)
+TN <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 1, confmatrix[1, 1], 0)
+FP <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 2, confmatrix[1, 2], 0)
+FN <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 1, confmatrix[2, 1], 0)
 
 # Accuracy
 accuracy <- (TP + TN) / sum(confmatrix)
@@ -1982,10 +1582,10 @@ colnames(confmatrix) <- paste("Pred", colnames(confmatrix), sep = ":")
 print(confmatrix)
 
 # True Positive (TP), True Negative (TN), False Positive (FP), False Negative (FN)
-TP <- confmatrix[2, 2]
-TN <- confmatrix[1, 1]
-FP <- confmatrix[1, 2]
-FN <- confmatrix[2, 1]
+TP <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 2, confmatrix[2, 2], 0)
+TN <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 1, confmatrix[1, 1], 0)
+FP <- ifelse(nrow(confmatrix) >= 1 & ncol(confmatrix) >= 2, confmatrix[1, 2], 0)
+FN <- ifelse(nrow(confmatrix) >= 2 & ncol(confmatrix) >= 1, confmatrix[2, 1], 0)
 
 # Accuracy
 accuracy <- (TP + TN) / sum(confmatrix)
@@ -2032,3 +1632,156 @@ test_pais <- test_pais %>% select(-FP)
 test_pais <- test_pais %>% select(-FN)
 test_pais <- test_pais %>% select(-PredictedStatus)
 ```
+
+## Shap
+
+```{r}
+library(shapviz)
+library(h2o)
+
+```
+
+```{r include=FALSE}
+
+h2o.init()
+
+train_h20 <- as.h2o(train)
+```
+
+```{r include=FALSE}
+# Random forest
+xvars <- colnames(train[-1])
+fit_rf <- h2o.randomForest(xvars, "Status", training_frame = train_h20)
+
+```
+
+```{r include=FALSE}
+# Create shapviz object
+shp_rf <- shapviz(fit_rf, X_pred = train)
+```
+
+```{r echo=FALSE}
+sv_importance(shp_rf, kind = "bar") +
+  geom_col(fill = "#E67E22") +  # Color azul acero
+  theme(
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    text = element_text(color = "black"),
+    axis.text = element_text(color = "black")
+  )
+```
+
+```{r echo=FALSE}
+sv_importance(shp_rf, kind = "beeswarm") +
+  theme_bw() +  # Base limpia
+  theme(
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA),
+    panel.border = element_rect(color = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    text = element_text(color = "black", size = 12),
+    axis.text = element_text(color = "black"),
+    axis.title = element_text(color = "black")
+  )
+```
+
+
+```{r}
+sv_waterfall(shp_rf, row_id = 1:nrow(shp_rf))
+```
+
+```{r}
+sv_force(shp_rf, row_id = 1:nrow(shp_rf))
+```
+
+```{r}
+sv_waterfall(shp_rf, train$QPC_Criteria_Order == 135)
+```
+
+```{r}
+sv_force(shp_rf, train$QPC_Criteria_Order == 135)
+```
+
+```{r}
+sv_waterfall(shp_rf, train$QPC_Criteria_Order == 32)
+```
+
+```{r}
+sv_force(shp_rf, train$QPC_Criteria_Order == 32)
+```
+
+
+```{r}
+sv_waterfall(shp_rf, train$Country.Code == 213)
+```
+
+```{r}
+sv_force(shp_rf, row_id = train$Country.Code == 213)
+```
+
+```{r}
+sv_waterfall(shp_rf, train$Country.Code == 469)
+```
+
+```{r}
+sv_force(shp_rf, row_id = train$Country.Code == 469)
+```
+
+```{r}
+sv_waterfall(shp_rf, train$Country.Code == 564)
+```
+
+```{r}
+sv_force(shp_rf, row_id = train$Country.Code == 564)
+```
+
+```{r}
+sv_waterfall(shp_rf, train$Country.Code == 926)
+```
+
+```{r}
+sv_force(shp_rf, row_id = train$Country.Code == 926)
+```
+
+```{r}
+sv_waterfall(shp_rf, train$Country.Code == 248)
+```
+
+```{r}
+sv_force(shp_rf, row_id = train$Country.Code == 248)
+```
+
+```{r}
+
+sv_dependence(shp_rf, "var_t4_t_BMG", 
+              color_var = "Sub.Option_NIR_floor",
+              alpha = 0.7,
+              jitter_width = 0.1) +  
+  scale_x_continuous(limits = c(-50, +150)) +
+  theme(
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    text = element_text(color = "black", size = 12),
+    axis.text = element_text(color = "black", size = 10),
+    axis.title = element_text(color = "black", size = 11),
+    legend.background = element_rect(fill = "white", color = NA),
+    legend.text = element_text(color = "black"),
+    legend.title = element_text(color = "black"),
+    legend.position = "bottom",           # Leyenda debajo
+    legend.direction = "horizontal",      # Leyenda horizontal
+    legend.box = "horizontal",            # Caja horizontal
+    legend.justification = "center"       # Centrada
+  )
+```
+
+
+
